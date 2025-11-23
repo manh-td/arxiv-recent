@@ -1,0 +1,42 @@
+name: Daily Code Execution
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+  
+  push:
+    # Optionally specify branches if needed
+    branches:
+      - main  # Change 'master' to the default branch of your repository if it's different
+permissions:
+  contents: write    # cho phép push changes back to repo
+
+jobs:
+  execute-code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Execute script
+        run: |
+          bash scripts/main.sh
+
+      - name: Configure Git
+        run: |
+          git config --global user.name ${{ secrets.USERNAME }}
+          git config --global user.email ${{ secrets.EMAIL }}
+
+      - name: Add changes to git
+        run: |
+          git add .
+
+      - name: Commit changes
+        run: |
+          git commit -m "Daily Code Execution GitHub Action" || echo "No changes to commit"
+
+      - name: Push changes
+        run: |
+          git push origin main
