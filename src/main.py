@@ -2,7 +2,6 @@ import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
 import json
-from datetime import datetime, UTC
 from src.config import SUBJECTS, DATA_DIR
 
 def parse_arxiv_feed(feed_xml):
@@ -48,7 +47,7 @@ def parse_arxiv_feed(feed_xml):
 
     return papers
 
-def get_recent_csse_papers(category:str, max_results=100, start=0):
+def get_recent_csse_papers(category:str, max_results=50, start=0):
     """
     Fetch recent arXiv cs.SE papers as an Atom XML string.
     
@@ -84,32 +83,39 @@ if __name__ == "__main__":
             print(subject, "→ No papers found")
             continue
 
-        # --- Determine the most recent date from the feed ---
-        first_date = parsed[0]["updated"][:10]   # YYYY-MM-DD
-
-        # --- Filter papers by this date ---
-        filtered = [
-            p for p in parsed
-            if p["updated"] and p["updated"].startswith(first_date)
+        # --- Extract ALL dates from the feed ---
+        all_dates = [
+            p["updated"][:10]
+            for p in parsed
+            if p.get("updated")
         ]
 
-        # --- Write JSONL file named by date ---
-        jsonl_filename = DATA_DIR / f"{subject}.{first_date}.jsonl"
+        # --- Identify the latest date ---
+        latest_date = max(all_dates)   # YYYY-MM-DD
+        print(f"{subject} → latest date: {latest_date}")
+
+        # --- Filter papers by that latest date ---
+        filtered = [
+            p for p in parsed
+            if p["updated"].startswith(latest_date)
+        ]
+
+        # --- Write JSONL file named by subject + date ---
+        jsonl_filename = DATA_DIR / f"{subject}.{latest_date}.jsonl"
+        if jsonl_filename.exists():
+            continue
+
         with open(jsonl_filename, "w", encoding="utf-8") as f:
             for item in filtered:
                 f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
         print(f"Saved {len(filtered)} papers to {jsonl_filename}")
 
-        # --- If date is today, also write today.jsonl ---
-        today_str = datetime.now(UTC)
-        if first_date == today_str:
-            with open(f"{str(DATA_DIR)}/today.jsonl", "w", encoding="utf-8") as f:
-                for item in filtered:
-                    f.write(json.dumps(item, ensure_ascii=False) + "\n")
+        today_file = DATA_DIR / "today.jsonl"
+        with open(today_file, "w", encoding="utf-8") as f:
+            for item in filtered:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
-            print(f"Saved {len(filtered)} papers to today.jsonl")
-
-        # Continue loop instead of break
+        print(f"Saved {len(filtered)} papers to {today_file}")
 
 
