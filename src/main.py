@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
         print(f"Saved {len(filtered)} papers to {jsonl_filename}")
 
-        today_file = DATA_DIR / "today.jsonl"
+        today_file = DATA_DIR / f"{subject}.today.jsonl"
         with open(today_file, "w", encoding="utf-8") as f:
             for item in filtered:
                 f.write(json.dumps(item, ensure_ascii=False) + "\n")
